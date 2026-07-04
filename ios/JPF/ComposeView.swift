@@ -116,11 +116,11 @@ struct ComposeView: View {
                     Button {
                         selectedChannel = channel
                     } label: {
-                        Text("\(channel.emoji) \(channel.nameJa)")
+                        Text(channel.nameJa)
                             .font(.footnote.weight(.medium))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(isSelected ? AnyShapeStyle(Theme.gradient) : AnyShapeStyle(Theme.card))
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 7)
+                            .background(isSelected ? Theme.accent : Theme.card)
                             .foregroundStyle(isSelected ? .white : Theme.secondaryText)
                             .clipShape(Capsule())
                             .overlay(Capsule().stroke(isSelected ? .clear : Theme.cardBorder, lineWidth: 1))

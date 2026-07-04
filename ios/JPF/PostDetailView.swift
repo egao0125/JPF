@@ -120,21 +120,24 @@ struct PostDetailView: View {
     }
 
     private var commentsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("コメント \(comments.count)件")
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(Theme.text)
-                .padding(.top, 4)
+                .padding(16)
 
             if comments.isEmpty {
-                Text("最初のコメントを書いてみよう 💬")
+                Text("最初のコメントを書いてみよう")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondaryText)
                     .frame(maxWidth: .infinity)
-                    .padding(20)
+                    .padding(.bottom, 24)
             }
 
-            ForEach(commentTree, id: \.comment.id) { entry in
+            ForEach(Array(commentTree.enumerated()), id: \.element.comment.id) { index, entry in
+                if index > 0 {
+                    Divider().padding(.leading, 16)
+                }
                 CommentRowView(
                     comment: entry.comment,
                     depth: entry.depth,
@@ -149,6 +152,8 @@ struct PostDetailView: View {
                 )
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
     }
 
     private var composer: some View {
@@ -313,24 +318,24 @@ struct CommentRowView: View {
                 RoundedRectangle(cornerRadius: 1)
                     .fill(Theme.cardBorder)
                     .frame(width: 2)
-                    .padding(.leading, CGFloat(min(depth, 3) - 1) * 20)
+                    .padding(.leading, CGFloat(min(depth, 3) - 1) * 18)
             }
-            AliasAvatar(emoji: comment.emoji, size: 30)
-            VStack(alignment: .leading, spacing: 6) {
+            AliasAvatar(emoji: comment.emoji, size: 28, colorKey: comment.alias)
+            VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
                     Text(comment.alias)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.text)
+                        .foregroundStyle(Theme.secondaryText)
                     if comment.isOp {
                         Text("主")
                             .font(.caption2.weight(.bold))
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
-                            .background(Theme.accentPink.opacity(0.25))
-                            .foregroundStyle(Theme.accentPink)
+                            .background(Theme.accent.opacity(0.12))
+                            .foregroundStyle(Theme.accent)
                             .clipShape(Capsule())
                     }
-                    Text(TimeAgo.string(from: comment.createdAt))
+                    Text("・\(TimeAgo.string(from: comment.createdAt))")
                         .font(.caption2)
                         .foregroundStyle(Theme.secondaryText)
                     Spacer()
@@ -351,17 +356,18 @@ struct CommentRowView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if !comment.isRemoved {
                     HStack(spacing: 16) {
-                        VoteControl(score: comment.score, myVote: comment.myVote, onVote: onVote)
-                            .scaleEffect(0.85, anchor: .leading)
                         Button("返信", action: onReply)
-                            .font(.caption.weight(.medium))
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.secondaryText)
+                        Spacer()
+                        VoteControl(score: comment.score, myVote: comment.myVote, onVote: onVote)
                     }
+                    .padding(.top, 2)
                 }
             }
         }
-        .padding(12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle()
     }
 }

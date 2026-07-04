@@ -47,7 +47,7 @@ struct NotificationsView: View {
 
     private func row(_ notification: NotificationDto) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            AliasAvatar(emoji: notification.actorEmoji, size: 36)
+            AliasAvatar(emoji: notification.actorEmoji, size: 34, colorKey: notification.actorAlias)
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(notification.actorAlias)さん")
                     .font(.footnote.weight(.semibold))

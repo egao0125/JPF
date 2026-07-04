@@ -96,12 +96,11 @@ final class FeedModel {
 
 struct FeedView: View {
     @Environment(SessionStore.self) private var session
-    @State private var model = FeedModel()
-    @State private var showCompose = false
+    @Bindable var model: FeedModel
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
+            ZStack {
                 Theme.background.ignoresSafeArea()
 
                 ScrollView {
@@ -127,11 +126,9 @@ struct FeedView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 80)
+                    .padding(.bottom, 96)
                 }
                 .refreshable { await model.reload() }
-
-                composeButton
             }
             .navigationTitle(session.user?.school.shortName ?? session.user?.school.name ?? "JPF")
             .navigationBarTitleDisplayMode(.inline)
@@ -146,37 +143,43 @@ struct FeedView: View {
                 await model.loadChannels()
                 if model.posts.isEmpty { await model.reload() }
             }
-            .sheet(isPresented: $showCompose) {
-                ComposeView(channels: model.channels) {
-                    Task { await model.reload() }
-                }
-            }
         }
     }
 
+    // Text-only sort pills, Sidechat-style.
     private var sortPicker: some View {
-        Picker("並び順", selection: Bindable(model).sort) {
+        HStack(spacing: 8) {
             ForEach(FeedSort.allCases) { sort in
-                Text(sort.label).tag(sort)
+                let isSelected = model.sort == sort
+                Button {
+                    guard model.sort != sort else { return }
+                    model.sort = sort
+                    Task { await model.reload() }
+                } label: {
+                    Text(sort.label)
+                        .font(.subheadline.weight(isSelected ? .bold : .medium))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(isSelected ? Theme.text : Theme.card)
+                        .foregroundStyle(isSelected ? .white : Theme.secondaryText)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
             }
+            Spacer()
         }
-        .pickerStyle(.segmented)
         .padding(.top, 8)
-        .onChange(of: model.sort) { _, _ in
-            Task { await model.reload() }
-        }
     }
 
     private var channelChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip(title: "すべて", emoji: "🏛️", isSelected: model.selectedChannel == nil) {
+                chip(title: "すべて", isSelected: model.selectedChannel == nil) {
                     model.selectedChannel = nil
                 }
                 ForEach(model.channels) { channel in
                     chip(
                         title: channel.nameJa,
-                        emoji: channel.emoji,
                         isSelected: model.selectedChannel == channel.slug
                     ) {
                         model.selectedChannel = channel.slug
@@ -186,36 +189,20 @@ struct FeedView: View {
         }
     }
 
-    private func chip(title: String, emoji: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func chip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
             action()
             Task { await model.reload() }
         } label: {
-            Text("\(emoji) \(title)")
+            Text(title)
                 .font(.footnote.weight(.medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(isSelected ? AnyShapeStyle(Theme.gradient) : AnyShapeStyle(Theme.card))
+                .padding(.horizontal, 13)
+                .padding(.vertical, 7)
+                .background(isSelected ? Theme.accent : Theme.card)
                 .foregroundStyle(isSelected ? .white : Theme.secondaryText)
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(isSelected ? .clear : Theme.cardBorder, lineWidth: 1))
         }
         .buttonStyle(.plain)
-    }
-
-    private var composeButton: some View {
-        Button {
-            showCompose = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 60, height: 60)
-                .background(Theme.gradient)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
-        }
-        .padding(20)
     }
 
     private func errorCard(_ message: String) -> some View {
