@@ -25,9 +25,11 @@ An anonymous campus community app for Japanese university students, in the style
 ```
 JPF/
 ├── backend/   Next.js 15 (App Router, TypeScript) + Prisma + SQLite
-│              REST API (/api/v1/*) + モデレーション管理画面 (/admin)
+│              REST API (/api/v1/*) + ティザーサイト (/) + モデレーション管理画面 (/admin)
 └── ios/       SwiftUI アプリ (iOS 17+, 外部依存なし)
 ```
+
+> 🕯️ `http://localhost:3000/` はローンチ前のミステリアスなティザーサイト（ウェイトリスト登録付き）。
 
 ## セットアップ / Getting started
 
@@ -87,6 +89,7 @@ Base URL: `/api/v1` — 認証は `Authorization: Bearer <JWT>`
 | GET | `/images/:name` | 画像取得 |
 | POST | `/reports` | 通報 `{targetType, targetId, reason}` |
 | GET | `/notifications` / POST `/notifications/read` | 通知 / 既読化 |
+| POST / GET | `/waitlist` | ウェイトリスト登録 `{email}` / 待機人数 |
 | GET | `/admin/reports` | 通報一覧（モデレーター） |
 | POST | `/admin/reports/:id` | 対応 `{action: remove\|dismiss\|ban}` |
 

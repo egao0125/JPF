@@ -169,6 +169,12 @@ model Report {
   @@index([status, createdAt])
 }
 
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 model Notification {
   id         String   @id @default(cuid())
   user       User     @relation(fields: [userId], references: [id])
