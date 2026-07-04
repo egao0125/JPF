@@ -18,6 +18,9 @@ An anonymous campus community app for Japanese university students, in the style
 - 📷 **画像投稿**（JPEG/PNG/WebP/HEIC、5MBまで）
 - 🔔 **通知** — 自分の投稿へのコメント、コメントへの返信
 - 🚨 **通報 & モデレーション** — 3件の通報で自動非表示、Web管理画面（`/admin`）で削除・BAN
+- 👤 **投稿者の選択** — 匿名（ランダムエイリアス）か自分のユーザーネーム（@handle）かを投稿・コメントごとに選べる
+- 🤝 **フレンド** — ユーザーネームで申請 → 承認（相互申請は自動承認）
+- 💬 **メッセージ** — フレンド同士の1対1チャット（未読バッジ付き）
 - 📱 iOS（SwiftUI, iOS 17+）+ Next.js API バックエンド
 
 ## 構成 / Architecture
@@ -74,12 +77,12 @@ Base URL: `/api/v1` — 認証は `Authorization: Bearer <JWT>`
 | --- | --- | --- |
 | POST | `/auth/request-code` | 認証コード送信 `{email}` |
 | POST | `/auth/verify` | コード検証 → JWT `{email, code}` |
-| GET | `/me` | 自分のプロフィール（カルマ等） |
+| GET / PATCH | `/me` | 自分のプロフィール / ユーザーネーム設定 `{username}` |
 | GET | `/me/posts` | 自分の投稿一覧 |
 | GET | `/schools` | 大学一覧 |
 | GET | `/channels` | チャンネル一覧 |
 | GET | `/feed?sort=new\|hot\|top&channel=&cursor=` | フィード（自分の大学のみ） |
-| POST | `/posts` | 投稿作成 `{channelSlug, text, imageUrl?, poll?}` |
+| POST | `/posts` | 投稿作成 `{channelSlug, text, anonymous?, imageUrl?, poll?}` |
 | GET / DELETE | `/posts/:id` | 詳細（コメント込み）/ 削除 |
 | POST | `/posts/:id/vote` | 投票 `{value: -1\|0\|1}` |
 | POST | `/posts/:id/comments` | コメント `{text, parentId?}` |
@@ -89,9 +92,22 @@ Base URL: `/api/v1` — 認証は `Authorization: Bearer <JWT>`
 | GET | `/images/:name` | 画像取得 |
 | POST | `/reports` | 通報 `{targetType, targetId, reason}` |
 | GET | `/notifications` / POST `/notifications/read` | 通知 / 既読化 |
+| GET | `/friends` | フレンド一覧・届いた申請・申請中 |
+| POST | `/friends/requests` | フレンド申請 `{username}` |
+| POST | `/friends/requests/:id` | 申請に応答 `{action: accept\|decline}` |
+| GET / POST | `/conversations` | 会話一覧 / 会話を開く `{userId}` |
+| GET / POST | `/conversations/:id/messages` | メッセージ取得（既読化）/ 送信 `{text}` |
 | POST / GET | `/waitlist` | ウェイトリスト登録 `{email}` / 待機人数 |
 | GET | `/admin/reports` | 通報一覧（モデレーター） |
 | POST | `/admin/reports/:id` | 対応 `{action: remove\|dismiss\|ban}` |
+
+## スケーラビリティ / Scalability notes
+
+- **Keyset（カーソル）ページネーション** — 全フィード・メッセージ取得はインデックス列に対するキーセット方式。オフセット方式と違い、何ページ目でもコストが一定
+- **書き込み時 hot スコア** — Reddit式 `sign·log10(|score|) + epoch/45000` を投稿・投票時に `Post.hotScore` へ保存（インデックス付き）。人気フィードは単なる `ORDER BY` で、メモリ内ソートなし
+- **レート制限** — 投稿10/分・コメント20/分・DM60/分など（`src/lib/ratelimit.ts`）。単一ノードはインメモリ、水平スケール時はストアをRedisに差し替えるだけ
+- **ステートレス認証** — JWT のみでセッションストア不要。アプリサーバーは何台でも並べられる
+- **PostgreSQL 移行** — `prisma/schema.prisma` の `provider` を `postgresql` に変えて `DATABASE_URL` を差し替えるだけ（スキーマはPostgres互換で設計）。画像は S3/R2 へ
 
 ## 本番運用に向けて / Production TODO
 

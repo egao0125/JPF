@@ -6,8 +6,10 @@ struct ComposeView: View {
     var onPosted: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(SessionStore.self) private var session
 
     @State private var text = ""
+    @State private var anonymous = true
     @State private var selectedChannel: ChannelDto?
     @State private var pollOptions: [String] = []
     @State private var photoItem: PhotosPickerItem?
@@ -30,8 +32,9 @@ struct ComposeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         channelPicker
+                        identityPicker
 
-                        TextField("いま何してる？匿名で共有しよう", text: $text, axis: .vertical)
+                        TextField("いま何してる？", text: $text, axis: .vertical)
                             .font(.body)
                             .lineLimit(5...12)
                             .padding(16)
@@ -106,6 +109,40 @@ struct ComposeView: View {
             }
         }
         .preferredColorScheme(.light)
+    }
+
+    // Post as a random alias or as your username, Sidechat-style.
+    private var identityPicker: some View {
+        HStack(spacing: 8) {
+            Text("投稿者:")
+                .font(.footnote)
+                .foregroundStyle(Theme.secondaryText)
+
+            identityChip(title: "匿名", isSelected: anonymous) { anonymous = true }
+
+            if let username = session.user?.username {
+                identityChip(title: "@\(username)", isSelected: !anonymous) { anonymous = false }
+            } else {
+                Text("実名投稿はマイページでユーザーネームを設定")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            Spacer()
+        }
+    }
+
+    private func identityChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.footnote.weight(isSelected ? .bold : .medium))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isSelected ? Theme.text : Theme.card)
+                .foregroundStyle(isSelected ? .white : Theme.secondaryText)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(isSelected ? .clear : Theme.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private var channelPicker: some View {
@@ -244,6 +281,7 @@ struct ComposeView: View {
                 .init(
                     channelSlug: channel.slug,
                     text: text.trimmingCharacters(in: .whitespacesAndNewlines),
+                    anonymous: anonymous,
                     imageUrl: imageUrl,
                     poll: options.count >= 2 ? .init(options: options) : nil
                 )

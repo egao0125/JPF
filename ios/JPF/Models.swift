@@ -9,6 +9,7 @@ struct SchoolDto: Codable, Hashable {
 struct UserMe: Codable, Hashable {
     let id: String
     let email: String
+    var username: String?
     var karma: Int
     let isModerator: Bool
     var postCount: Int?
@@ -42,6 +43,7 @@ struct PostDto: Codable, Hashable, Identifiable {
     let imageUrl: String?
     let alias: String
     let emoji: String
+    let authorName: String? // non-nil when posted under a username
     let channel: ChannelDto
     var score: Int
     var myVote: Int
@@ -56,6 +58,7 @@ struct CommentDto: Codable, Hashable, Identifiable {
     let parentId: String?
     let alias: String
     let emoji: String
+    let authorName: String?
     let isOp: Bool
     let text: String
     var score: Int
@@ -103,7 +106,53 @@ struct RequestCodeResponse: Codable {
 
 struct FeedResponse: Codable {
     let posts: [PostDto]
-    let nextCursor: Int?
+    let nextCursor: String?
+}
+
+// MARK: - Friends & chat
+
+struct FriendDto: Codable, Hashable, Identifiable {
+    let userId: String
+    let username: String?
+    var id: String { userId }
+}
+
+struct FriendRequestDto: Codable, Hashable, Identifiable {
+    let requestId: String
+    let userId: String
+    let username: String?
+    var id: String { requestId }
+}
+
+struct FriendsResponse: Codable {
+    let friends: [FriendDto]
+    let incoming: [FriendRequestDto]
+    let outgoing: [FriendRequestDto]
+}
+
+struct ConversationDto: Codable, Hashable, Identifiable {
+    let id: String
+    let friend: FriendDto
+    let lastMessage: LastMessageDto?
+    let unreadCount: Int
+
+    struct LastMessageDto: Codable, Hashable {
+        let text: String
+        let isMine: Bool
+        let createdAt: Date
+    }
+}
+
+struct MessageDto: Codable, Hashable, Identifiable {
+    let id: String
+    let text: String
+    let isMine: Bool
+    let createdAt: Date
+}
+
+struct MessagesResponse: Codable {
+    let messages: [MessageDto]
+    let nextCursor: String?
 }
 
 struct PostDetailResponse: Codable {

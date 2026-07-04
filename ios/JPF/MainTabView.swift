@@ -1,11 +1,27 @@
 import SwiftUI
 
-// Custom bottom bar with a raised center compose button, Sidechat-style.
+// Bottom bar with 4 tabs; compose is an X-style floating button that
+// sits above the bar on the feed tab.
 struct MainTabView: View {
-    private enum Tab { case feed, notifications, profile }
+    private enum Tab { case feed, messages, notifications, profile }
 
-    @State private var tab: Tab = .feed
-    @State private var unreadCount = 0
+    @State private var tab: Tab
+    @State private var unreadNotifications = 0
+
+    init() {
+        var initialTab: Tab = .feed
+        #if DEBUG
+        // UI-testing hook: open a specific tab via launch environment.
+        switch ProcessInfo.processInfo.environment["JPF_DEBUG_TAB"] {
+        case "messages": initialTab = .messages
+        case "notifications": initialTab = .notifications
+        case "profile": initialTab = .profile
+        default: break
+        }
+        #endif
+        _tab = State(initialValue: initialTab)
+    }
+    @State private var unreadMessages = 0
     @State private var showCompose = false
     @State private var feedModel = FeedModel()
 
@@ -15,21 +31,51 @@ struct MainTabView: View {
                 switch tab {
                 case .feed:
                     FeedView(model: feedModel)
+                case .messages:
+                    MessagesView(unreadMessages: $unreadMessages)
                 case .notifications:
-                    NotificationsView(unreadCount: $unreadCount)
+                    NotificationsView(unreadCount: $unreadNotifications)
                 case .profile:
                     ProfileView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
+            if tab == .feed {
+                composeFab
+            }
+
             bottomBar
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .task { await refreshBadge() }
+        .task { await refreshBadges() }
         .sheet(isPresented: $showCompose) {
             ComposeView(channels: feedModel.channels) {
                 Task { await feedModel.reload() }
+            }
+        }
+    }
+
+    // X-style floating compose button, bottom-right above the bar.
+    private var composeFab: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                Button {
+                    showCompose = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 58, height: 58)
+                        .background(Theme.accent)
+                        .clipShape(Circle())
+                        .shadow(color: Theme.accent.opacity(0.4), radius: 10, y: 4)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 18)
+                .padding(.bottom, 78)
             }
         }
     }
@@ -38,28 +84,15 @@ struct MainTabView: View {
         HStack(spacing: 0) {
             barButton(icon: "house.fill", label: "フィード", active: tab == .feed) { tab = .feed }
                 .frame(maxWidth: .infinity)
-
-            Button {
-                showCompose = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 52, height: 52)
-                    .background(Theme.accent)
-                    .clipShape(Circle())
-                    .shadow(color: Theme.accent.opacity(0.35), radius: 10, y: 4)
+            barButton(icon: "bubble.left.and.bubble.right.fill", label: "メッセージ", active: tab == .messages, badge: unreadMessages) {
+                tab = .messages
             }
-            .buttonStyle(.plain)
-            .offset(y: -14)
             .frame(maxWidth: .infinity)
-
-            barButton(icon: "bell.fill", label: "通知", active: tab == .notifications, badge: unreadCount) {
+            barButton(icon: "bell.fill", label: "通知", active: tab == .notifications, badge: unreadNotifications) {
                 tab = .notifications
-                Task { await refreshBadge() }
+                Task { await refreshBadges() }
             }
             .frame(maxWidth: .infinity)
-
             barButton(icon: "person.fill", label: "マイページ", active: tab == .profile) { tab = .profile }
                 .frame(maxWidth: .infinity)
         }
@@ -103,9 +136,10 @@ struct MainTabView: View {
         .buttonStyle(.plain)
     }
 
-    private func refreshBadge() async {
-        if let response = try? await APIClient.shared.notifications() {
-            unreadCount = response.unreadCount
-        }
+    private func refreshBadges() async {
+        async let notifications = try? APIClient.shared.notifications()
+        async let conversations = try? APIClient.shared.conversations()
+        if let response = await notifications { unreadNotifications = response.unreadCount }
+        if let list = await conversations { unreadMessages = list.reduce(0) { $0 + $1.unreadCount } }
     }
 }

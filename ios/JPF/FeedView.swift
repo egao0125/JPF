@@ -25,7 +25,8 @@ final class FeedModel {
     var selectedChannel: String? // nil = all
     var isLoading = false
     var errorMessage: String?
-    private var nextCursor: Int? = 0
+    private var nextCursor: String?
+    private var reachedEnd = false
 
     private let api = APIClient.shared
 
@@ -36,18 +37,24 @@ final class FeedModel {
     }
 
     func reload() async {
-        nextCursor = 0
+        nextCursor = nil
+        reachedEnd = false
         await loadMore(reset: true)
     }
 
     func loadMore(reset: Bool = false) async {
-        guard let cursor = nextCursor, !isLoading else { return }
+        guard !reachedEnd || reset, !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
         do {
-            let page = try await api.feed(sort: sort.rawValue, channel: selectedChannel, cursor: cursor)
+            let page = try await api.feed(
+                sort: sort.rawValue,
+                channel: selectedChannel,
+                cursor: reset ? nil : nextCursor
+            )
             posts = reset ? page.posts : posts + page.posts
             nextCursor = page.nextCursor
+            reachedEnd = page.nextCursor == nil
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription

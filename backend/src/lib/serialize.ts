@@ -12,6 +12,7 @@ export type PostDto = {
   imageUrl: string | null;
   alias: string;
   emoji: string;
+  authorName: string | null; // set when the author chose to post under their username
   channel: { slug: string; nameJa: string; emoji: string };
   score: number;
   myVote: number;
@@ -31,6 +32,7 @@ export type CommentDto = {
   parentId: string | null;
   alias: string;
   emoji: string;
+  authorName: string | null;
   isOp: boolean;
   text: string;
   score: number;
@@ -44,7 +46,9 @@ export async function toPostDtos(posts: PostWithRelations[], viewerId: string): 
   const postIds = posts.map((p) => p.id);
   const pollIds = posts.filter((p) => p.poll).map((p) => p.poll!.id);
 
-  const [aliases, votes, pollVotes] = await Promise.all([
+  const namedAuthorIds = [...new Set(posts.filter((p) => !p.isAnonymous).map((p) => p.authorId))];
+
+  const [aliases, votes, pollVotes, namedAuthors] = await Promise.all([
     prisma.threadAlias.findMany({
       where: { OR: posts.map((p) => ({ postId: p.id, userId: p.authorId })) },
     }),
@@ -54,8 +58,12 @@ export async function toPostDtos(posts: PostWithRelations[], viewerId: string): 
     pollIds.length
       ? prisma.pollVote.findMany({ where: { userId: viewerId, pollId: { in: pollIds } } })
       : Promise.resolve([]),
+    namedAuthorIds.length
+      ? prisma.user.findMany({ where: { id: { in: namedAuthorIds } }, select: { id: true, username: true } })
+      : Promise.resolve([]),
   ]);
 
+  const usernameMap = new Map(namedAuthors.map((u) => [u.id, u.username]));
   const aliasMap = new Map(aliases.map((a) => [`${a.postId}:${a.userId}`, a]));
   const voteMap = new Map(votes.map((v) => [v.targetId, v.value]));
   const pollVoteMap = new Map(pollVotes.map((v) => [v.pollId, v.optionId]));
@@ -68,6 +76,7 @@ export async function toPostDtos(posts: PostWithRelations[], viewerId: string): 
       imageUrl: p.imageUrl,
       alias: alias?.alias ?? "匿名",
       emoji: alias?.emoji ?? "👤",
+      authorName: p.isAnonymous ? null : usernameMap.get(p.authorId) ?? null,
       channel: { slug: p.channel.slug, nameJa: p.channel.nameJa, emoji: p.channel.emoji },
       score: p.score,
       myVote: voteMap.get(p.id) ?? 0,
@@ -90,14 +99,19 @@ export async function toPostDtos(posts: PostWithRelations[], viewerId: string): 
 }
 
 export async function toCommentDtos(comments: Comment[], postId: string, viewerId: string): Promise<CommentDto[]> {
-  const [aliases, votes] = await Promise.all([
+  const namedAuthorIds = [...new Set(comments.filter((c) => !c.isAnonymous).map((c) => c.authorId))];
+  const [aliases, votes, namedAuthors] = await Promise.all([
     prisma.threadAlias.findMany({ where: { postId } }),
     prisma.vote.findMany({
       where: { userId: viewerId, targetType: "comment", targetId: { in: comments.map((c) => c.id) } },
     }),
+    namedAuthorIds.length
+      ? prisma.user.findMany({ where: { id: { in: namedAuthorIds } }, select: { id: true, username: true } })
+      : Promise.resolve([]),
   ]);
   const aliasMap = new Map(aliases.map((a) => [a.userId, a]));
   const voteMap = new Map(votes.map((v) => [v.targetId, v.value]));
+  const usernameMap = new Map(namedAuthors.map((u) => [u.id, u.username]));
 
   return comments.map((c) => {
     const alias = aliasMap.get(c.authorId);
@@ -106,6 +120,7 @@ export async function toCommentDtos(comments: Comment[], postId: string, viewerI
       parentId: c.parentId,
       alias: alias?.alias ?? "匿名",
       emoji: alias?.emoji ?? "👤",
+      authorName: c.isAnonymous ? null : usernameMap.get(c.authorId) ?? null,
       isOp: alias?.isOp ?? false,
       // Removed comments keep their place in the tree but hide content.
       text: c.isRemoved ? "（削除されました）" : c.text,

@@ -6,6 +6,9 @@ struct ProfileView: View {
     @State private var myPosts: [PostDto] = []
     @State private var showLogoutConfirm = false
     @State private var showServerSettings = false
+    @State private var showUsernameEditor = false
+    @State private var usernameDraft = ""
+    @State private var usernameError: String?
     @State private var serverURL = UserDefaults.standard.string(forKey: "api_base_url") ?? APIClient.defaultBaseURL
 
     var body: some View {
@@ -15,9 +18,11 @@ struct ProfileView: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         profileCard
+                        friendsRow
                         myPostsSection
                     }
                     .padding(16)
+                    .padding(.bottom, 80)
                 }
                 .refreshable {
                     await session.refresh()
@@ -67,6 +72,25 @@ struct ProfileView: View {
             } message: {
                 Text("実機で使う場合は Mac のIPアドレスを指定してください")
             }
+            .alert("ユーザーネーム", isPresented: $showUsernameEditor) {
+                TextField("3〜20文字の英数字・_", text: $usernameDraft)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("保存") {
+                    Task { await saveUsername() }
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("実名投稿やフレンド申請で使われます。匿名投稿には表示されません")
+            }
+            .alert("エラー", isPresented: Binding(
+                get: { usernameError != nil },
+                set: { if !$0 { usernameError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(usernameError ?? "")
+            }
         }
     }
 
@@ -87,11 +111,36 @@ struct ProfileView: View {
                     .font(.caption)
                     .foregroundStyle(Theme.secondaryText)
                 if session.user?.isModerator == true {
-                    Text("🛡️ モデレーター")
+                    Text("モデレーター")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.accent)
                 }
             }
+
+            Button {
+                usernameDraft = session.user?.username ?? ""
+                showUsernameEditor = true
+            } label: {
+                HStack(spacing: 6) {
+                    if let username = session.user?.username {
+                        Text("@\(username)")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Theme.accent)
+                    } else {
+                        Text("ユーザーネームを設定")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.accent)
+                    }
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Theme.accent.opacity(0.08))
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
 
             HStack(spacing: 0) {
                 stat(value: session.user?.karma ?? 0, label: "カルマ")
@@ -104,6 +153,41 @@ struct ProfileView: View {
         .padding(20)
         .frame(maxWidth: .infinity)
         .cardStyle()
+    }
+
+    private var friendsRow: some View {
+        NavigationLink {
+            FriendsView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.2.fill")
+                    .font(.body)
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 36, height: 36)
+                    .background(Theme.accent.opacity(0.1))
+                    .clipShape(Circle())
+                Text("フレンド")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.secondaryText)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardStyle()
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func saveUsername() async {
+        do {
+            let me = try await APIClient.shared.setUsername(usernameDraft.trimmingCharacters(in: .whitespaces))
+            session.user = me
+        } catch {
+            usernameError = error.localizedDescription
+        }
     }
 
     private var divider: some View {

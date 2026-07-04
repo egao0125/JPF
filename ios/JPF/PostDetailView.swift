@@ -6,10 +6,12 @@ struct PostDetailView: View {
     var onDelete: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(SessionStore.self) private var session
 
     @State private var post: PostDto?
     @State private var comments: [CommentDto] = []
     @State private var commentText = ""
+    @State private var commentAnonymous = true
     @State private var replyTarget: CommentDto?
     @State private var isSending = false
     @State private var errorMessage: String?
@@ -174,7 +176,26 @@ struct PostDetailView: View {
                 .padding(.horizontal, 4)
             }
             HStack(spacing: 10) {
-                TextField("匿名でコメント…", text: $commentText, axis: .vertical)
+                // Identity toggle: random alias ↔ your username.
+                Button {
+                    if session.user?.username == nil {
+                        errorMessage = "実名コメントにはマイページでユーザーネームの設定が必要です"
+                    } else {
+                        commentAnonymous.toggle()
+                    }
+                } label: {
+                    Text(commentAnonymous ? "匿名" : "@\(session.user?.username ?? "")")
+                        .font(.caption.weight(.bold))
+                        .lineLimit(1)
+                        .foregroundStyle(commentAnonymous ? Theme.secondaryText : .white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(commentAnonymous ? Theme.pill : Theme.accent)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                TextField(commentAnonymous ? "匿名でコメント…" : "実名でコメント…", text: $commentText, axis: .vertical)
                     .lineLimit(1...4)
                     .font(.subheadline)
                     .padding(.horizontal, 14)
@@ -270,7 +291,8 @@ struct PostDetailView: View {
             let comment = try await api.createComment(
                 postId: post.id,
                 text: commentText.trimmingCharacters(in: .whitespacesAndNewlines),
-                parentId: replyTarget?.id
+                parentId: replyTarget?.id,
+                anonymous: commentAnonymous
             )
             comments.append(comment)
             commentText = ""
@@ -320,12 +342,21 @@ struct CommentRowView: View {
                     .frame(width: 2)
                     .padding(.leading, CGFloat(min(depth, 3) - 1) * 18)
             }
-            AliasAvatar(emoji: comment.emoji, size: 28, colorKey: comment.alias)
+            if let name = comment.authorName {
+                Text(String(name.prefix(1)).uppercased())
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(Theme.avatarColor(for: name))
+                    .clipShape(Circle())
+            } else {
+                AliasAvatar(emoji: comment.emoji, size: 28, colorKey: comment.alias)
+            }
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
-                    Text(comment.alias)
+                    Text(comment.authorName.map { "@\($0)" } ?? comment.alias)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.secondaryText)
+                        .foregroundStyle(comment.authorName != nil ? Theme.accent : Theme.secondaryText)
                     if comment.isOp {
                         Text("主")
                             .font(.caption2.weight(.bold))

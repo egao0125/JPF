@@ -12,6 +12,11 @@ struct PostCardView: View {
                 Text(post.channel.nameJa)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.accent)
+                if let name = post.authorName {
+                    Text("@\(name)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.text)
+                }
                 if post.isMine {
                     Text("自分")
                         .font(.caption2.weight(.semibold))

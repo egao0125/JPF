@@ -98,13 +98,11 @@ final class APIClient {
         return r.channels
     }
 
-    func feed(sort: String, channel: String?, cursor: Int) async throws -> FeedResponse {
+    func feed(sort: String, channel: String?, cursor: String?) async throws -> FeedResponse {
         var components = URLComponents()
         components.path = "/api/v1/feed"
-        components.queryItems = [
-            .init(name: "sort", value: sort),
-            .init(name: "cursor", value: String(cursor)),
-        ]
+        components.queryItems = [.init(name: "sort", value: sort)]
+        if let cursor { components.queryItems?.append(.init(name: "cursor", value: cursor)) }
         if let channel { components.queryItems?.append(.init(name: "channel", value: channel)) }
         return try await get(components.string ?? "/api/v1/feed")
     }
@@ -112,6 +110,7 @@ final class APIClient {
     struct CreatePostBody: Codable {
         let channelSlug: String
         let text: String
+        var anonymous: Bool = true
         var imageUrl: String?
         var poll: PollBody?
         struct PollBody: Codable { let options: [String] }
@@ -140,11 +139,60 @@ final class APIClient {
         try await post("/api/v1/comments/\(id)/vote", ["value": value])
     }
 
-    func createComment(postId: String, text: String, parentId: String?) async throws -> CommentDto {
-        struct Body: Codable { let text: String; let parentId: String? }
+    func createComment(postId: String, text: String, parentId: String?, anonymous: Bool = true) async throws -> CommentDto {
+        struct Body: Codable { let text: String; let parentId: String?; let anonymous: Bool }
         struct R: Codable { let comment: CommentDto }
-        let r: R = try await post("/api/v1/posts/\(postId)/comments", Body(text: text, parentId: parentId))
+        let r: R = try await post(
+            "/api/v1/posts/\(postId)/comments",
+            Body(text: text, parentId: parentId, anonymous: anonymous)
+        )
         return r.comment
+    }
+
+    func setUsername(_ username: String) async throws -> UserMe {
+        try await request("PATCH", "/api/v1/me", body: ["username": username])
+    }
+
+    // MARK: - Friends
+
+    func friends() async throws -> FriendsResponse {
+        try await get("/api/v1/friends")
+    }
+
+    func sendFriendRequest(username: String) async throws {
+        struct R: Codable { let status: String }
+        let _: R = try await post("/api/v1/friends/requests", ["username": username])
+    }
+
+    func respondFriendRequest(id: String, action: String) async throws {
+        struct R: Codable { let status: String }
+        let _: R = try await post("/api/v1/friends/requests/\(id)", ["action": action])
+    }
+
+    // MARK: - Chat
+
+    func conversations() async throws -> [ConversationDto] {
+        struct R: Codable { let conversations: [ConversationDto] }
+        let r: R = try await get("/api/v1/conversations")
+        return r.conversations
+    }
+
+    func openConversation(with userId: String) async throws -> (id: String, friend: FriendDto) {
+        struct R: Codable { let id: String; let friend: FriendDto }
+        let r: R = try await post("/api/v1/conversations", ["userId": userId])
+        return (r.id, r.friend)
+    }
+
+    func messages(conversationId: String, cursor: String? = nil) async throws -> MessagesResponse {
+        var path = "/api/v1/conversations/\(conversationId)/messages"
+        if let cursor { path += "?cursor=\(cursor)" }
+        return try await get(path)
+    }
+
+    func sendMessage(conversationId: String, text: String) async throws -> MessageDto {
+        struct R: Codable { let message: MessageDto }
+        let r: R = try await post("/api/v1/conversations/\(conversationId)/messages", ["text": text])
+        return r.message
     }
 
     func votePoll(pollId: String, optionId: String) async throws -> PollDto {

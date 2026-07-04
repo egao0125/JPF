@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { randomAliasAvoiding } from "../src/lib/aliases";
+import { hotScore } from "../src/lib/ranking";
 
 const prisma = new PrismaClient();
 
@@ -157,6 +158,9 @@ async function main() {
   console.log("Seeding…");
 
   // Idempotent-ish: wipe content tables (keep it simple for dev)
+  await prisma.message.deleteMany();
+  await prisma.conversation.deleteMany();
+  await prisma.friendRequest.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.report.deleteMany();
   await prisma.pollVote.deleteMany();
@@ -191,16 +195,58 @@ async function main() {
   }
 
   const todai = schoolByName.get("東京大学")!;
+  const USERNAMES: (string | null)[] = [
+    "taro_2026", "hana_hongo", "yakisoba_panda", null, "shibuya_neko",
+    null, "todai_umeshu", null, null, "zenzen_dame",
+  ];
   const users = [];
   for (let i = 0; i < 10; i++) {
     users.push(
       await prisma.user.create({
-        data: { email: `demo${i}@g.ecc.u-tokyo.ac.jp`, schoolId: todai, karma: 10 + i * 7 },
+        data: {
+          email: `demo${i}@g.ecc.u-tokyo.ac.jp`,
+          username: USERNAMES[i],
+          schoolId: todai,
+          karma: 10 + i * 7,
+        },
       })
     );
   }
   await prisma.user.create({
-    data: { email: "mod@u-tokyo.ac.jp", schoolId: todai, isModerator: true, karma: 120 },
+    data: { email: "mod@u-tokyo.ac.jp", username: "mod", schoolId: todai, isModerator: true, karma: 120 },
+  });
+
+  // Friends & chat demo: demo0 ↔ demo1 are friends with a conversation;
+  // demo2 has a pending request to demo0.
+  await prisma.friendRequest.create({
+    data: { fromId: users[1].id, toId: users[0].id, status: "accepted" },
+  });
+  await prisma.friendRequest.create({
+    data: { fromId: users[2].id, toId: users[0].id, status: "pending" },
+  });
+  const [userAId, userBId] = [users[0].id, users[1].id].sort();
+  const conversation = await prisma.conversation.create({ data: { userAId, userBId } });
+  const CHAT: { from: number; text: string; minutesAgo: number }[] = [
+    { from: 1, text: "きのうの雑談チャンネルの投稿、あれ書いたのお前だろw", minutesAgo: 95 },
+    { from: 0, text: "なんのことかな〜（すっとぼけ）", minutesAgo: 90 },
+    { from: 1, text: "カレーの値上げに一番キレてたの学部で一人しかいない", minutesAgo: 88 },
+    { from: 0, text: "バレてるじゃん。てか今日3限出る？", minutesAgo: 30 },
+    { from: 1, text: "出る出る。図書館の前で待ち合わせしよ", minutesAgo: 12 },
+  ];
+  for (const m of CHAT) {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        senderId: users[m.from].id,
+        text: m.text,
+        createdAt: new Date(Date.now() - m.minutesAgo * 60_000),
+        readAt: m.from === 1 && m.minutesAgo < 20 ? null : new Date(),
+      },
+    });
+  }
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: { lastMessageAt: new Date(Date.now() - 12 * 60_000) },
   });
 
   for (const p of POSTS) {
@@ -227,6 +273,7 @@ async function main() {
         channelId: channelBySlug.get(p.channel)!,
         text: p.text,
         score: p.score,
+        hotScore: hotScore(p.score, createdAt),
         commentCount: commentList.length,
         createdAt,
       },

@@ -24,21 +24,25 @@ model SchoolDomain {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  school        School         @relation(fields: [schoolId], references: [id])
-  schoolId      String
-  karma         Int            @default(0)
-  isModerator   Boolean        @default(false)
-  isBanned      Boolean        @default(false)
-  createdAt     DateTime       @default(now())
-  posts         Post[]
-  comments      Comment[]
-  votes         Vote[]
-  pollVotes     PollVote[]
-  threadAliases ThreadAlias[]
-  reports       Report[]
-  notifications Notification[]
+  id             String          @id @default(cuid())
+  email          String          @unique
+  username       String?         @unique
+  school         School          @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  karma          Int             @default(0)
+  isModerator    Boolean         @default(false)
+  isBanned       Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  posts          Post[]
+  comments       Comment[]
+  votes          Vote[]
+  pollVotes      PollVote[]
+  threadAliases  ThreadAlias[]
+  reports        Report[]
+  notifications  Notification[]
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+  messages       Message[]
 }
 
 model VerificationCode {
@@ -70,7 +74,9 @@ model Post {
   channelId     String
   text          String
   imageUrl      String?
+  isAnonymous   Boolean       @default(true)
   score         Int           @default(0)
+  hotScore      Float         @default(0) // write-time Reddit-style rank; see lib/ranking.ts
   commentCount  Int           @default(0)
   isRemoved     Boolean       @default(false)
   createdAt     DateTime      @default(now())
@@ -80,6 +86,7 @@ model Post {
 
   @@index([schoolId, createdAt])
   @@index([schoolId, score])
+  @@index([schoolId, hotScore])
 }
 
 model Comment {
@@ -89,12 +96,13 @@ model Comment {
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   parentId  String?
   replies   Comment[] @relation("CommentReplies")
-  author    User      @relation(fields: [authorId], references: [id])
-  authorId  String
-  text      String
-  score     Int       @default(0)
-  isRemoved Boolean   @default(false)
-  createdAt DateTime  @default(now())
+  author      User      @relation(fields: [authorId], references: [id])
+  authorId    String
+  text        String
+  isAnonymous Boolean   @default(true)
+  score       Int       @default(0)
+  isRemoved   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
 
   @@index([postId, createdAt])
 }
@@ -167,6 +175,46 @@ model Report {
 
   @@unique([reporterId, targetType, targetId])
   @@index([status, createdAt])
+}
+
+model FriendRequest {
+  id        String   @id @default(cuid())
+  from      User     @relation("SentRequests", fields: [fromId], references: [id])
+  fromId    String
+  to        User     @relation("ReceivedRequests", fields: [toId], references: [id])
+  toId      String
+  status    String   @default("pending") // pending | accepted | declined
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId])
+  @@index([toId, status])
+  @@index([fromId, status])
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  // participant ids stored in sorted order so a pair maps to one row
+  userAId       String
+  userBId       String
+  lastMessageAt DateTime  @default(now())
+  messages      Message[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, lastMessageAt])
+  @@index([userBId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  sender         User         @relation(fields: [senderId], references: [id])
+  senderId       String
+  text           String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 model WaitlistEntry {

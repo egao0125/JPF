@@ -4,17 +4,25 @@ import { prisma } from "@/lib/db";
 import { handler, ok, parseBody, ApiError } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { randomAliasAvoiding } from "@/lib/aliases";
+import { rateLimit } from "@/lib/ratelimit";
 import { toCommentDtos } from "@/lib/serialize";
 
 const schema = z.object({
   text: z.string().trim().min(1, "本文を入力してください").max(500),
   parentId: z.string().optional(),
+  anonymous: z.boolean().default(true),
 });
 
 export const POST = handler(async (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
   const user = await requireUser(req);
+  rateLimit(`comment:${user.id}`, 20, 60_000);
   const { id: postId } = await ctx.params;
   const body = await parseBody(req, schema);
+
+  if (!body.anonymous) {
+    const me = await prisma.user.findUnique({ where: { id: user.id }, select: { username: true } });
+    if (!me?.username) throw new ApiError(400, "ユーザーネームを設定すると実名コメントができます");
+  }
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -46,21 +54,36 @@ export const POST = handler(async (req: NextRequest, ctx: { params: Promise<{ id
   }
 
   const comment = await prisma.comment.create({
-    data: { postId, parentId: parent?.id ?? null, authorId: user.id, text: body.text },
+    data: {
+      postId,
+      parentId: parent?.id ?? null,
+      authorId: user.id,
+      text: body.text,
+      isAnonymous: body.anonymous,
+    },
   });
   await prisma.post.update({ where: { id: postId }, data: { commentCount: { increment: 1 } } });
 
   // Notify the person being answered (never yourself).
   const notifyUserId = parent ? parent.authorId : post.authorId;
   if (notifyUserId !== user.id) {
+    let actorAlias = alias.alias;
+    let actorEmoji = alias.emoji;
+    if (!body.anonymous) {
+      const me = await prisma.user.findUnique({ where: { id: user.id }, select: { username: true } });
+      if (me?.username) {
+        actorAlias = `@${me.username}`;
+        actorEmoji = "";
+      }
+    }
     await prisma.notification.create({
       data: {
         userId: notifyUserId,
         type: parent ? "reply_to_comment" : "comment_on_post",
         postId,
         commentId: comment.id,
-        actorAlias: alias.alias,
-        actorEmoji: alias.emoji,
+        actorAlias,
+        actorEmoji,
         preview: body.text.slice(0, 80),
       },
     });

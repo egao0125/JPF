@@ -4,11 +4,14 @@ import { prisma } from "@/lib/db";
 import { handler, ok, parseBody, ApiError } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { randomAlias } from "@/lib/aliases";
+import { hotScore } from "@/lib/ranking";
+import { rateLimit } from "@/lib/ratelimit";
 import { toPostDtos } from "@/lib/serialize";
 
 const schema = z.object({
   channelSlug: z.string().min(1),
   text: z.string().trim().min(1, "本文を入力してください").max(1000),
+  anonymous: z.boolean().default(true),
   imageUrl: z
     .string()
     .regex(/^\/api\/v1\/images\/[a-f0-9]{24}\.(jpg|png|webp|heic)$/)
@@ -20,19 +23,29 @@ const schema = z.object({
 
 export const POST = handler(async (req: NextRequest) => {
   const user = await requireUser(req);
+  rateLimit(`post:${user.id}`, 10, 60_000);
   const body = await parseBody(req, schema);
 
   const channel = await prisma.channel.findUnique({ where: { slug: body.channelSlug } });
   if (!channel) throw new ApiError(404, "チャンネルが見つかりません");
   if (body.poll && body.imageUrl) throw new ApiError(400, "画像とアンケートは同時に投稿できません");
 
+  if (!body.anonymous) {
+    const me = await prisma.user.findUnique({ where: { id: user.id }, select: { username: true } });
+    if (!me?.username) throw new ApiError(400, "ユーザーネームを設定すると実名投稿ができます");
+  }
+
+  const now = new Date();
   const post = await prisma.post.create({
     data: {
       authorId: user.id,
       schoolId: user.schoolId,
       channelId: channel.id,
       text: body.text,
+      isAnonymous: body.anonymous,
       imageUrl: body.imageUrl ?? null,
+      hotScore: hotScore(0, now),
+      createdAt: now,
       poll: body.poll
         ? { create: { options: { create: body.poll.options.map((text, i) => ({ text, order: i })) } } }
         : undefined,

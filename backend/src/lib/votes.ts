@@ -1,5 +1,6 @@
 import { prisma } from "./db";
 import { ApiError } from "./api";
+import { hotScore } from "./ranking";
 
 // Apply an up/down/clear vote to a post or comment.
 // Keeps the cached score on the target and the author's karma in sync.
@@ -11,8 +12,14 @@ export async function applyVote(
 ): Promise<{ score: number; myVote: number }> {
   const target =
     targetType === "post"
-      ? await prisma.post.findUnique({ where: { id: targetId }, select: { authorId: true, isRemoved: true } })
-      : await prisma.comment.findUnique({ where: { id: targetId }, select: { authorId: true, isRemoved: true } });
+      ? await prisma.post.findUnique({
+          where: { id: targetId },
+          select: { authorId: true, isRemoved: true, createdAt: true },
+        })
+      : await prisma.comment.findUnique({
+          where: { id: targetId },
+          select: { authorId: true, isRemoved: true, createdAt: true },
+        });
   if (!target || target.isRemoved) throw new ApiError(404, "対象が見つかりません");
 
   const existing = await prisma.vote.findUnique({
@@ -38,6 +45,10 @@ export async function applyVote(
       select: { score: true },
     });
     score = updated.score;
+    await prisma.post.update({
+      where: { id: targetId },
+      data: { hotScore: hotScore(score, target.createdAt) },
+    });
   } else {
     const updated = await prisma.comment.update({
       where: { id: targetId },
