@@ -14,8 +14,8 @@ type Report = {
 };
 
 const box: React.CSSProperties = {
-  background: "#000000",
-  border: "1px solid #2f3336",
+  background: "#ffffff",
+  border: "1px solid #cfd9de",
   borderRadius: 14,
   padding: 20,
 };
@@ -24,17 +24,17 @@ const input: React.CSSProperties = {
   boxSizing: "border-box",
   padding: "12px 14px",
   borderRadius: 10,
-  border: "1px solid #2f3336",
-  background: "#000000",
-  color: "#e7e9ea",
+  border: "1px solid #cfd9de",
+  background: "#ffffff",
+  color: "#0f1419",
   fontSize: 15,
 };
 const button: React.CSSProperties = {
   padding: "10px 18px",
   borderRadius: 10,
   border: "none",
-  background: "#eff3f4",
-  color: "#0f1419",
+  background: "#0f1419",
+  color: "#ffffff",
   fontWeight: 700,
   cursor: "pointer",
   fontSize: 14,
@@ -164,9 +164,9 @@ export default function AdminPage() {
       {step === "in" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "#71767b" }}>未対応の通報: {reports.length}件</span>
+            <span style={{ color: "#536471" }}>未対応の通報: {reports.length}件</span>
             <button
-              style={{ ...button, background: "#2f3336", color: "#e7e9ea" }}
+              style={{ ...button, background: "#eff3f4", color: "#0f1419" }}
               onClick={() => {
                 localStorage.removeItem("jpf_admin_token");
                 setToken(null);
@@ -180,7 +180,7 @@ export default function AdminPage() {
           {reports.length === 0 && <div style={box}>✨ 未対応の通報はありません</div>}
           {reports.map((r) => (
             <div key={r.id} style={box}>
-              <div style={{ color: "#71767b", fontSize: 13, marginBottom: 8 }}>
+              <div style={{ color: "#536471", fontSize: 13, marginBottom: 8 }}>
                 {r.school} ・ {r.targetType === "post" ? "投稿" : "コメント"} ・{" "}
                 {new Date(r.createdAt).toLocaleString("ja-JP")}
                 {r.targetRemoved && " ・ ⚠️ 自動非表示中"}
@@ -192,7 +192,7 @@ export default function AdminPage() {
                   削除する
                 </button>
                 <button
-                  style={{ ...button, background: "#2f3336", color: "#e7e9ea" }}
+                  style={{ ...button, background: "#eff3f4", color: "#0f1419" }}
                   onClick={() => act(r.id, "dismiss")}
                 >
                   問題なし

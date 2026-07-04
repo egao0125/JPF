@@ -123,7 +123,7 @@ struct PostDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("コメント \(comments.count)件")
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.text)
                 .padding(.top, 4)
 
             if comments.isEmpty {
@@ -186,14 +186,14 @@ struct PostDetailView: View {
                     Task { await sendComment() }
                 } label: {
                     if isSending {
-                        ProgressView().tint(.black)
+                        ProgressView().tint(.white)
                             .frame(width: 38, height: 38)
                             .background(Theme.gradient)
                             .clipShape(Circle())
                     } else {
                         Image(systemName: "arrow.up")
                             .font(.body.weight(.bold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .frame(width: 38, height: 38)
                             .background(Theme.gradient.opacity(canSend ? 1 : 0.35))
                             .clipShape(Circle())
@@ -320,7 +320,7 @@ struct CommentRowView: View {
                 HStack(spacing: 6) {
                     Text(comment.alias)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.text)
                     if comment.isOp {
                         Text("主")
                             .font(.caption2.weight(.bold))
@@ -347,7 +347,7 @@ struct CommentRowView: View {
                 }
                 Text(comment.text)
                     .font(.subheadline)
-                    .foregroundStyle(comment.isRemoved ? Theme.secondaryText : .white)
+                    .foregroundStyle(comment.isRemoved ? Theme.secondaryText : Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
                 if !comment.isRemoved {
                     HStack(spacing: 16) {

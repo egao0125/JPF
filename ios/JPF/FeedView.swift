@@ -196,7 +196,7 @@ struct FeedView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(isSelected ? AnyShapeStyle(Theme.gradient) : AnyShapeStyle(Theme.card))
-                .foregroundStyle(isSelected ? .black : Theme.secondaryText)
+                .foregroundStyle(isSelected ? .white : Theme.secondaryText)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(isSelected ? .clear : Theme.cardBorder, lineWidth: 1))
         }
@@ -209,11 +209,11 @@ struct FeedView: View {
         } label: {
             Image(systemName: "plus")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(width: 60, height: 60)
                 .background(Theme.gradient)
                 .clipShape(Circle())
-                .shadow(color: .white.opacity(0.15), radius: 12, y: 4)
+                .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
         }
         .padding(20)
     }

@@ -82,7 +82,7 @@ struct ProfileView: View {
             VStack(spacing: 4) {
                 Text(session.user?.school.name ?? "")
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.text)
                 Text(session.user?.email ?? "")
                     .font(.caption)
                     .foregroundStyle(Theme.secondaryText)
@@ -128,7 +128,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("自分の投稿")
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.text)
 
             if myPosts.isEmpty {
                 Text("まだ投稿がありません。フィードから最初の投稿をしてみよう！")

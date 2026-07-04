@@ -25,7 +25,7 @@ struct JPFApp: App {
                 }
             }
             .environment(session)
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(.light)
             .tint(Theme.accent)
             .task { await session.bootstrap() }
         }

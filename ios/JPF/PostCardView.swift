@@ -11,7 +11,7 @@ struct PostCardView: View {
             header
             Text(post.text)
                 .font(isDetail ? .body : .subheadline)
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.text)
                 .multilineTextAlignment(.leading)
                 .lineLimit(isDetail ? nil : 8)
                 .fixedSize(horizontal: false, vertical: true)
@@ -50,7 +50,7 @@ struct PostCardView: View {
                 HStack(spacing: 6) {
                     Text(post.alias)
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Theme.text)
                     if post.isMine {
                         Text("あなた")
                             .font(.caption2.weight(.bold))
@@ -128,7 +128,7 @@ struct VoteControl: View {
     private var scoreColor: Color {
         if myVote == 1 { return Theme.upvote }
         if myVote == -1 { return Theme.downvote }
-        return .white
+        return Theme.text
     }
 }
 
@@ -169,7 +169,7 @@ struct PollView: View {
             HStack {
                 Text(option.text)
                     .font(.footnote.weight(isMine ? .bold : .regular))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.text)
                 Spacer()
                 if hasVoted {
                     Text("\(Int((fraction * 100).rounded()))%")

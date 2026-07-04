@@ -81,7 +81,7 @@ struct ComposeView: View {
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 7)
                                 .background(Theme.gradient.opacity(canPost ? 1 : 0.35))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(.white)
                                 .clipShape(Capsule())
                         }
                     }
@@ -105,7 +105,7 @@ struct ComposeView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 
     private var channelPicker: some View {
@@ -121,7 +121,7 @@ struct ComposeView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(isSelected ? AnyShapeStyle(Theme.gradient) : AnyShapeStyle(Theme.card))
-                            .foregroundStyle(isSelected ? .black : Theme.secondaryText)
+                            .foregroundStyle(isSelected ? .white : Theme.secondaryText)
                             .clipShape(Capsule())
                             .overlay(Capsule().stroke(isSelected ? .clear : Theme.cardBorder, lineWidth: 1))
                     }
