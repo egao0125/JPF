@@ -3,6 +3,8 @@ import SwiftUI
 @main
 struct JPFApp: App {
     @State private var session = SessionStore()
+    @State private var justCompletedOnboarding = false
+    @AppStorage("has_completed_onboarding") private var hasCompletedOnboarding = false
 
     init() {
         #if DEBUG
@@ -19,7 +21,16 @@ struct JPFApp: App {
                 if session.isBootstrapping {
                     SplashView()
                 } else if session.user == nil {
-                    AuthFlowView()
+                    if hasCompletedOnboarding {
+                        // Straight to email entry right after onboarding; the welcome
+                        // screen is only for returning logged-out users.
+                        AuthFlowView(startAtEmail: justCompletedOnboarding)
+                    } else {
+                        OnboardingView {
+                            hasCompletedOnboarding = true
+                            justCompletedOnboarding = true
+                        }
+                    }
                 } else {
                     MainTabView()
                 }

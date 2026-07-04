@@ -5,13 +5,17 @@ struct AuthFlowView: View {
 
     private enum Step { case welcome, email, code }
 
-    @State private var step: Step = .welcome
+    @State private var step: Step
     @State private var email = ""
     @State private var code = ""
     @State private var devCodeHint: String?
     @State private var errorMessage: String?
     @State private var isLoading = false
     @FocusState private var focused: Bool
+
+    init(startAtEmail: Bool = false) {
+        _step = State(initialValue: startAtEmail ? .email : .welcome)
+    }
 
     var body: some View {
         ZStack {
