@@ -1,21 +1,26 @@
 import SwiftUI
 
-// X (Twitter) "Lights out" palette.
+// X monochrome palette: black surfaces, white actions (black text on white buttons).
+// Red is reserved for errors/destructive, matching X.
 enum Theme {
     static let background = Color.black                                      // #000000
     static let card = Color.black                                            // flat black — hairline borders do the separation
     static let cardBorder = Color(red: 0.184, green: 0.200, blue: 0.212)     // #2F3336
-    static let accent = Color(red: 0.114, green: 0.608, blue: 0.941)         // #1D9BF0 X blue
-    static let accentPink = Color(red: 0.976, green: 0.094, blue: 0.502)     // #F91880 like-pink
+    static let accent = Color.white
+    static let accentPink = Color.white                                      // badges/dots — monochrome
     static let secondaryText = Color(red: 0.443, green: 0.463, blue: 0.482)  // #71767B
     static let error = Color(red: 0.957, green: 0.129, blue: 0.180)          // #F4212E
-    static let upvote = Color(red: 0.114, green: 0.608, blue: 0.941)         // X blue
-    static let downvote = Color(red: 0.957, green: 0.129, blue: 0.180)       // #F4212E
+    static let upvote = Color.white
+    static let downvote = Color.white
 
-    // Kept as a gradient type so call sites don't change; #1D9BF0 → #1A8CD8 reads flat like X buttons.
+    // Kept as a gradient type so call sites don't change; #EFF3F4 → #E7E9EA reads flat
+    // like X's white primary buttons.
     static var gradient: LinearGradient {
         LinearGradient(
-            colors: [accent, Color(red: 0.102, green: 0.549, blue: 0.847)],
+            colors: [
+                Color(red: 0.937, green: 0.953, blue: 0.957),
+                Color(red: 0.906, green: 0.914, blue: 0.918),
+            ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

@@ -186,14 +186,14 @@ struct PostDetailView: View {
                     Task { await sendComment() }
                 } label: {
                     if isSending {
-                        ProgressView().tint(.white)
+                        ProgressView().tint(.black)
                             .frame(width: 38, height: 38)
                             .background(Theme.gradient)
                             .clipShape(Circle())
                     } else {
                         Image(systemName: "arrow.up")
                             .font(.body.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.black)
                             .frame(width: 38, height: 38)
                             .background(Theme.gradient.opacity(canSend ? 1 : 0.35))
                             .clipShape(Circle())

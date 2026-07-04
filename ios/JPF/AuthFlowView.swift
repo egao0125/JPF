@@ -62,7 +62,7 @@ struct AuthFlowView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(Theme.gradient)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.black)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
 
@@ -123,7 +123,7 @@ struct AuthFlowView: View {
         } label: {
             Group {
                 if isLoading {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(.black)
                 } else {
                     Text(title).font(.headline)
                 }
@@ -131,7 +131,7 @@ struct AuthFlowView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(Theme.gradient.opacity(disabled ? 0.35 : 1))
-            .foregroundStyle(.white)
+            .foregroundStyle(.black)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .disabled(disabled || isLoading)
