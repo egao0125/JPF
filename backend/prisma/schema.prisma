@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id        String         @id @default(cuid())
+  name      String
+  shortName String?
+  domains   SchoolDomain[]
+  users     User[]
+  posts     Post[]
+  createdAt DateTime       @default(now())
+}
+
+model SchoolDomain {
+  domain   String @id
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId String
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  school        School         @relation(fields: [schoolId], references: [id])
+  schoolId      String
+  karma         Int            @default(0)
+  isModerator   Boolean        @default(false)
+  isBanned      Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  posts         Post[]
+  comments      Comment[]
+  votes         Vote[]
+  pollVotes     PollVote[]
+  threadAliases ThreadAlias[]
+  reports       Report[]
+  notifications Notification[]
+}
+
+model VerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model Channel {
+  id     String @id @default(cuid())
+  slug   String @unique
+  nameJa String
+  emoji  String
+  order  Int    @default(0)
+  posts  Post[]
+}
+
+model Post {
+  id            String        @id @default(cuid())
+  author        User          @relation(fields: [authorId], references: [id])
+  authorId      String
+  school        School        @relation(fields: [schoolId], references: [id])
+  schoolId      String
+  channel       Channel       @relation(fields: [channelId], references: [id])
+  channelId     String
+  text          String
+  imageUrl      String?
+  score         Int           @default(0)
+  commentCount  Int           @default(0)
+  isRemoved     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  comments      Comment[]
+  poll          Poll?
+  threadAliases ThreadAlias[]
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, score])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId  String?
+  replies   Comment[] @relation("CommentReplies")
+  author    User      @relation(fields: [authorId], references: [id])
+  authorId  String
+  text      String
+  score     Int       @default(0)
+  isRemoved Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model Vote {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  targetType String // "post" | "comment"
+  targetId   String
+  value      Int // 1 | -1
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+}
+
+model Poll {
+  id      String       @id @default(cuid())
+  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId  String       @unique
+  options PollOption[]
+  votes   PollVote[]
+}
+
+model PollOption {
+  id        String     @id @default(cuid())
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId    String
+  text      String
+  order     Int
+  voteCount Int        @default(0)
+  votes     PollVote[]
+}
+
+model PollVote {
+  id       String     @id @default(cuid())
+  user     User       @relation(fields: [userId], references: [id])
+  userId   String
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId   String
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  optionId String
+
+  @@unique([userId, pollId])
+}
+
+model ThreadAlias {
+  id     String  @id @default(cuid())
+  post   Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  user   User    @relation(fields: [userId], references: [id])
+  userId String
+  alias  String
+  emoji  String
+  isOp   Boolean @default(false)
+
+  @@unique([postId, userId])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  reporterId String
+  targetType String // "post" | "comment"
+  targetId   String
+  reason     String
+  status     String   @default("open") // open | resolved | dismissed
+  createdAt  DateTime @default(now())
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  type       String // "comment_on_post" | "reply_to_comment"
+  postId     String
+  commentId  String?
+  actorAlias String
+  actorEmoji String
+  preview    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
