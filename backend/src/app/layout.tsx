@@ -14,8 +14,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           margin: 0,
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif',
-          background: "#0f0f14",
-          color: "#f2f2f7",
+          background: "#000000",
+          color: "#e7e9ea",
           minHeight: "100vh",
         }}
       >

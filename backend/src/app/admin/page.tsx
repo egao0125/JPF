@@ -14,8 +14,8 @@ type Report = {
 };
 
 const box: React.CSSProperties = {
-  background: "#1a1a22",
-  border: "1px solid #2c2c34",
+  background: "#000000",
+  border: "1px solid #2f3336",
   borderRadius: 14,
   padding: 20,
 };
@@ -24,17 +24,17 @@ const input: React.CSSProperties = {
   boxSizing: "border-box",
   padding: "12px 14px",
   borderRadius: 10,
-  border: "1px solid #2c2c34",
-  background: "#0f0f14",
-  color: "#f2f2f7",
+  border: "1px solid #2f3336",
+  background: "#000000",
+  color: "#e7e9ea",
   fontSize: 15,
 };
 const button: React.CSSProperties = {
   padding: "10px 18px",
   borderRadius: 10,
   border: "none",
-  background: "linear-gradient(135deg, #a78bfa, #f472b6)",
-  color: "#0f0f14",
+  background: "#1d9bf0",
+  color: "#ffffff",
   fontWeight: 700,
   cursor: "pointer",
   fontSize: 14,
@@ -157,16 +157,16 @@ export default function AdminPage() {
               </button>
             </>
           )}
-          {message && <p style={{ color: "#f472b6", margin: 0 }}>{message}</p>}
+          {message && <p style={{ color: "#f4212e", margin: 0 }}>{message}</p>}
         </div>
       )}
 
       {step === "in" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "#8e8e93" }}>未対応の通報: {reports.length}件</span>
+            <span style={{ color: "#71767b" }}>未対応の通報: {reports.length}件</span>
             <button
-              style={{ ...button, background: "#2c2c34", color: "#f2f2f7" }}
+              style={{ ...button, background: "#2f3336", color: "#e7e9ea" }}
               onClick={() => {
                 localStorage.removeItem("jpf_admin_token");
                 setToken(null);
@@ -176,29 +176,29 @@ export default function AdminPage() {
               ログアウト
             </button>
           </div>
-          {message && <p style={{ color: "#f472b6" }}>{message}</p>}
+          {message && <p style={{ color: "#f4212e" }}>{message}</p>}
           {reports.length === 0 && <div style={box}>✨ 未対応の通報はありません</div>}
           {reports.map((r) => (
             <div key={r.id} style={box}>
-              <div style={{ color: "#8e8e93", fontSize: 13, marginBottom: 8 }}>
+              <div style={{ color: "#71767b", fontSize: 13, marginBottom: 8 }}>
                 {r.school} ・ {r.targetType === "post" ? "投稿" : "コメント"} ・{" "}
                 {new Date(r.createdAt).toLocaleString("ja-JP")}
                 {r.targetRemoved && " ・ ⚠️ 自動非表示中"}
               </div>
               <div style={{ marginBottom: 8, whiteSpace: "pre-wrap" }}>{r.targetText}</div>
-              <div style={{ color: "#f472b6", fontSize: 14, marginBottom: 12 }}>通報理由: {r.reason}</div>
+              <div style={{ color: "#f4212e", fontSize: 14, marginBottom: 12 }}>通報理由: {r.reason}</div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button style={button} onClick={() => act(r.id, "remove")}>
                   削除する
                 </button>
                 <button
-                  style={{ ...button, background: "#2c2c34", color: "#f2f2f7" }}
+                  style={{ ...button, background: "#2f3336", color: "#e7e9ea" }}
                   onClick={() => act(r.id, "dismiss")}
                 >
                   問題なし
                 </button>
                 <button
-                  style={{ ...button, background: "#e11d48", color: "#fff" }}
+                  style={{ ...button, background: "#f4212e", color: "#fff" }}
                   onClick={() => act(r.id, "ban")}
                 >
                   投稿者をBAN

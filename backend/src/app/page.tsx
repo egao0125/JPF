@@ -13,18 +13,8 @@ export default function Home() {
       }}
     >
       <div style={{ fontSize: 64 }}>🎓</div>
-      <h1
-        style={{
-          margin: 0,
-          fontSize: 40,
-          background: "linear-gradient(135deg, #a78bfa, #f472b6)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        JPF
-      </h1>
-      <p style={{ margin: 0, color: "#8e8e93", maxWidth: 420, lineHeight: 1.7 }}>
+      <h1 style={{ margin: 0, fontSize: 40, color: "#1d9bf0" }}>JPF</h1>
+      <p style={{ margin: 0, color: "#71767b", maxWidth: 420, lineHeight: 1.7 }}>
         日本の大学生のための匿名キャンパスSNS。
         <br />
         このサーバーは iOS アプリ用 API（<code>/api/v1</code>）を提供しています。
@@ -32,9 +22,9 @@ export default function Home() {
       <a
         href="/admin"
         style={{
-          color: "#a78bfa",
+          color: "#1d9bf0",
           textDecoration: "none",
-          border: "1px solid #2c2c34",
+          border: "1px solid #2f3336",
           padding: "10px 24px",
           borderRadius: 12,
         }}
